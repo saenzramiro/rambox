@@ -47,6 +47,7 @@ Ext.define('Rambox.ux.WebView',{
 			,type: me.record.get('type')
 			,align: me.record.get('align')
 			,notifications: me.record.get('notifications')
+			,allowExternalTab: me.record.get('allow_external_tab')
 			,muted: me.record.get('muted')
 			,tabConfig: {
 				listeners: {
@@ -212,7 +213,7 @@ Ext.define('Rambox.ux.WebView',{
 					 tag: 'webview'
 					,src: me.record.get('url')
 					,style: 'width:100%;height:100%;visibility:visible;'
-					,partition: 'persist:' + me.record.get('type') + '_' + me.id.replace('tab_', '') + (localStorage.getItem('id_token') ? '_' + Ext.decode(localStorage.getItem('profile')).sub : '')
+					,partition: me.isExternal ? me.originalPartition : 'persist:' + me.record.get('type') + '_' + me.id.replace('tab_', '') + (localStorage.getItem('id_token') ? '_' + Ext.decode(localStorage.getItem('profile')).sub : '')
 					,plugins: 'true'
 					,allowtransparency: 'on'
 					,autosize: 'on'
@@ -445,11 +446,41 @@ Ext.define('Rambox.ux.WebView',{
 					break;
 			}
 
-			const protocol = require('url').parse(e.url).protocol;
-			if (protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:') {
-				e.preventDefault();
+			if(!me.isExternal && me.allowExternalTab) {
+			var regexExpSpec = Ext.getStore('ServicesList').getById(me.record.get('type')).get('external_tab_match')
+			var notRegexExpSpec = Ext.getStore('ServicesList').getById(me.record.get('type')).get('external_tab_not_match')
+			var matchCustom = regexExpSpec !== '' && (new RegExp(regexExpSpec, 'ig')).test(e.url)
+			var notMatchCustom = notRegexExpSpec === '' || !(new RegExp(notRegexExpSpec, 'ig')).test(e.url) 
+			var protocol = require('url').parse(e.url).protocol
+			if(((matchCustom && notMatchCustom)) && (protocol === 'http:' || protocol === 'https:')) {
+				const map = new Map();
+				me.record.fields.forEach(function(obj) {
+					map.set(obj.name, me.record.get(obj.name))
+				})
+				//we map everything to a new Map, because we don't want the original record to be edited
+				map.set('url', e.url)
+				map.set('id', e.url)
+
+				var cfg = {
+					xtype: 'webview'
+					,closable: true // usefull, allow us to close the tab, with the DEL key
+					,record: map
+					,originalPartition: me.getWebView().partition   
+					,isExternal: true // used for the condition
+					,closeText: locale['app.window[40]']
+			   };
+
+				Ext.cq1('app-main').add(cfg);
+			   	// get the last tab and activate it
+				var last = Ext.cq1('app-main').items.length -1;
+				// because we respect background tabs
+				if(e.disposition !== 'background-tab') Ext.cq1('app-main').setActiveTab(last)
+
+			} else {
 				require('electron').shell.openExternal(e.url);
 			}
+			e.preventDefault()
+		} 
 		});
 
 		webview.addEventListener('will-navigate', function(e, url) {

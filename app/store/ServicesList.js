@@ -34,6 +34,7 @@ Ext.define('Rambox.store.ServicesList', {
 			 id: 'slack'
 			,logo: 'slack.png'
 			,name: 'Slack'
+			,external_tab_match: 'https?:\/\/.*\.slack\.com'
 			,description: locale['services[1]']
 			,url: 'https://___.slack.com/'
 			,type: 'messaging'
@@ -188,6 +189,7 @@ Ext.define('Rambox.store.ServicesList', {
 			,url: 'https://discordapp.com/login'
 			,type: 'messaging'
 			,titleBlink: true
+			,external_tab_match: 'https?:\/\/discordapp\.com'
 			,js_unread: 'window.originalopen=window.open,window.open=function(){return arguments.length>0?window.originalopen.apply(this,arguments):{set location(n){window.originalopen(n)}}};function checkUnread(){var e=document.querySelectorAll("[class*=scroller] [class*=container]"),r=Array.from(e.values()).reduce((e,r)=>e+(r&&r.querySelector("[class*=avatar]")&&r.querySelector("[class*=wrapper][class*=badge]")?parseInt(r.querySelector("[class*=wrapper][class*=badge]").innerHTML):0),0);rambox.setUnreadCount(r)}setInterval(checkUnread,3e3);'
 			,note: 'To enable desktop notifications, you have to go to Options inside Discord. Will count only unread DMs.'
 		},
